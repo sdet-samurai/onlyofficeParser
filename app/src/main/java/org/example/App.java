@@ -20,7 +20,7 @@ public class App {
         Configuration.browser = "firefox";
         Configuration.pageLoadStrategy = "eager";
         Configuration.browserSize = "1920x1080";
-//        Configuration.headless = true;
+        Configuration.headless = true;
     }
 
     public static void main(String[] args) throws IOException {
@@ -31,7 +31,7 @@ public class App {
 
         webdriver().shouldHave(
                 url("https://www.onlyoffice.com/contacts.aspx"),
-                Duration.ofSeconds(20));
+                Duration.ofSeconds(40));
         $$("div[itemtype='https://schema.org/PostalAddress']")
                 .shouldHave(CollectionCondition.sizeGreaterThanOrEqual(8),
                         Duration.ofSeconds(20));
