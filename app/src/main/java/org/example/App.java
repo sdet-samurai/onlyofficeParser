@@ -36,7 +36,12 @@ public class App {
                 .shouldHave(CollectionCondition.sizeGreaterThanOrEqual(8),
                         Duration.ofSeconds(20));
 
-        File file = new File("output", "addresses.csv");
+        File directory = new File("output");
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+
+        File file = new File(directory, "addresses.csv");
         file.createNewFile();
         ICSVWriter writer = new CSVWriterBuilder(new FileWriter(file))
                 .withSeparator(';')
