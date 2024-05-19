@@ -16,7 +16,14 @@ import static com.codeborne.selenide.Selenide.*;
 import static com.codeborne.selenide.WebDriverConditions.url;
 
 public class App {
+    private static final String PATH_NAME;
+    private static final String FILE_NAME;
+    private static final List<String> CSV_HEADERS;
+
     static {
+        PATH_NAME = "output";
+        FILE_NAME = "addresses.csv";
+        CSV_HEADERS = List.of("Country", "CompanyName", "FullAddress");
         Configuration.browser = "firefox";
         Configuration.pageLoadStrategy = "eager";
         Configuration.browserSize = "1920x1080";
@@ -24,6 +31,32 @@ public class App {
     }
 
     public static void main(String[] args) throws IOException {
+        FileWriter fileWriter = new FileWriter(createDirAndOtputFile());
+        ICSVWriter writer = new CSVWriterBuilder(fileWriter)
+                .withSeparator(';')
+                .build();
+        writer.writeNext(CSV_HEADERS.toArray(new String[0]));
+
+        openPage();
+        processAddresses(writer);
+
+        WebDriverRunner.closeWebDriver();
+        writer.close();
+    }
+
+    private static void processAddresses(ICSVWriter writer) {
+        ElementsCollection addresses = $$("div[itemtype='https://schema.org/PostalAddress']");
+        List<String> elems = new ArrayList<>(3);
+        for (SelenideElement selenideElement : addresses) {
+            elems.add(selenideElement.$(".region").getText());
+            elems.add(selenideElement.$("span b").getText());
+            elems.add(getFullAddress(selenideElement));
+            writer.writeNext(elems.toArray(new String[0]));
+            elems.clear();
+        }
+    }
+
+    private static void openPage() {
         open("https://www.onlyoffice.com");
         $("#navitem_about").hover();
         $("#navitem_about_contacts").shouldBe(Condition.visible);
@@ -35,41 +68,32 @@ public class App {
         $$("div[itemtype='https://schema.org/PostalAddress']")
                 .shouldHave(CollectionCondition.sizeGreaterThanOrEqual(8),
                         Duration.ofSeconds(20));
+    }
 
-        File directory = new File("output");
+    private static String getFullAddress(SelenideElement element) {
+        StringBuilder fullAddress = new StringBuilder();
+        if (element.$("span[itemprop=streetAddress]").exists()) {
+            fullAddress.append(element.$("span[itemprop=streetAddress]").getText());
+        }
+        fullAddress.append(element.$("span[itemprop=addressCountry]").getText());
+        if (element.$("span[itemprop=postalCode]").exists()) {
+            fullAddress.append(element.$("span[itemprop=postalCode]").getText());
+        }
+        if (element.$("span[itemprop=telephone] a").exists()) {
+            fullAddress.append("Phone: ")
+                    .append(element.$("span[itemprop=telephone] a").getText());
+        }
+        return fullAddress.toString();
+    }
+
+    private static File createDirAndOtputFile() throws IOException {
+        File directory = new File(PATH_NAME);
         if (!directory.exists()) {
             directory.mkdirs();
         }
 
-        File file = new File(directory, "addresses.csv");
+        File file = new File(directory, FILE_NAME);
         file.createNewFile();
-        ICSVWriter writer = new CSVWriterBuilder(new FileWriter(file))
-                .withSeparator(';')
-                .build();
-        ElementsCollection addresses = $$("div[itemtype='https://schema.org/PostalAddress']");
-        List<String> elems = new ArrayList<>(3);
-        for (SelenideElement selenideElement : addresses) {
-            elems.add(selenideElement.$(".region").getText());
-            elems.add(selenideElement.$("span b").getText());
-
-            StringBuilder fullAddress = new StringBuilder();
-            if (selenideElement.$("span[itemprop=streetAddress]").exists()) {
-                fullAddress.append(selenideElement.$("span[itemprop=streetAddress]").getText());
-            }
-            fullAddress.append(selenideElement.$("span[itemprop=addressCountry]").getText());
-            if (selenideElement.$("span[itemprop=postalCode]").exists()) {
-                fullAddress.append(selenideElement.$("span[itemprop=postalCode]").getText());
-            }
-            if (selenideElement.$("span[itemprop=telephone] a").exists()) {
-                fullAddress.append("Phone: ")
-                        .append(selenideElement.$("span[itemprop=telephone] a").getText());
-            }
-            elems.add(fullAddress.toString());
-
-            writer.writeNext(elems.toArray(new String[0]));
-            elems.clear();
-        }
-        WebDriverRunner.closeWebDriver();
-        writer.close();
+        return file;
     }
 }
