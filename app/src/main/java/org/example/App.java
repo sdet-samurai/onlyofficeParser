@@ -21,8 +21,8 @@ public class App {
     private static final List<String> CSV_HEADERS;
 
     static {
-        PATH_NAME = "output";
-        FILE_NAME = "addresses.csv";
+        PATH_NAME = new AppConfig("config.properties").getProperty("path_name");
+        FILE_NAME = new AppConfig("config.properties").getProperty("csv_file_name");
         CSV_HEADERS = List.of("Country", "CompanyName", "FullAddress");
         Configuration.browser = "firefox";
         Configuration.pageLoadStrategy = "eager";
